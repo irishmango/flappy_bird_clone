@@ -29,7 +29,7 @@ export default function GameCanvas({ width = 360, height = 520 }) {
     const gravity = 0.22;
     const jump = -6.3;
     const pipeW = 44;
-    const gap = 120;
+    const gap = 140;
     const speed = 1.8;
     const spawnIntervalFrames = 85;
 
@@ -76,44 +76,43 @@ export default function GameCanvas({ width = 360, height = 520 }) {
       const s = stateRef.current;
       s.frame++;
 
-      // physics
-      s.vel += gravity;
-      s.birdY += s.vel;
+      // update only while running
+      if (s.running) {
+        // physics
+        s.vel += gravity;
+        s.birdY += s.vel;
 
-      // pipes
-      if (s.frame % spawnIntervalFrames === 0) spawnPipe();
-      for (const p of s.pipes) p.x -= speed;
-      s.pipes = s.pipes.filter(p => p.x + pipeW > -2);
+        // pipes
+        if (s.frame % spawnIntervalFrames === 0) spawnPipe();
+        for (const p of s.pipes) p.x -= speed;
+        s.pipes = s.pipes.filter(p => p.x + pipeW > -2);
 
-      // collisions & score
-      for (const p of s.pipes) {
-        const inX = birdX + birdR > p.x && birdX - birdR < p.x + pipeW;
-        const hitTop = s.birdY - birdR < p.gapY;
-        const hitBot = s.birdY + birdR > p.gapY + gap;
-        if (inX && (hitTop || hitBot)) s.running = false;
-        if (!p.passed && p.x + pipeW < birdX) { p.passed = true; s.score++; }
+        // collisions & score
+        for (const p of s.pipes) {
+          const inX = birdX + birdR > p.x && birdX - birdR < p.x + pipeW;
+          const hitTop = s.birdY - birdR < p.gapY;
+          const hitBot = s.birdY + birdR > p.gapY + gap;
+          if (inX && (hitTop || hitBot)) s.running = false;
+          if (!p.passed && p.x + pipeW < birdX) { p.passed = true; s.score++; }
+        }
+        if (s.birdY - birdR < 0 || s.birdY + birdR > H) s.running = false;
+
+        // parallax offsets
+        s.bg1 -= 0.5; if (s.bg1 < -W) s.bg1 += W;
+        s.bg2 -= 1.0; if (s.bg2 < -W) s.bg2 += W;
+        s.bg3 -= 2.0; if (s.bg3 < -W) s.bg3 += W;
       }
-      if (s.birdY - birdR < 0 || s.birdY + birdR > H) s.running = false;
 
+      // update high score after a death
       if (!s.running) {
         s.high = Math.max(s.high, s.score);
         HighScore.set(s.high);
       }
 
-      // parallax offsets
-      s.bg1 -= 0.5; if (s.bg1 < -W) s.bg1 += W;
-      s.bg2 -= 1.0; if (s.bg2 < -W) s.bg2 += W;
-      s.bg3 -= 2.0; if (s.bg3 < -W) s.bg3 += W;
-
       // render
       // sky
       ctx.fillStyle = '#87CEEB';
       ctx.fillRect(0, 0, W, H);
-
-      // parallax mountains/clouds
-      drawLayer(ctx, W, H, s.bg1, 40, 0.25, '#d7f0ff'); // far clouds
-      drawLayer(ctx, W, H, s.bg2, 90, 0.4, '#bde0fe'); // mid hills
-      drawLayer(ctx, W, H, s.bg3, 140, 0.6, '#9bd1ff'); // near hills
 
       // ground
       ctx.fillStyle = '#7ac74f';
